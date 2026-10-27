@@ -194,4 +194,4 @@ else:
             pregunta = st.text_area(
                 "Tu pregunta",
                 placeholder=(
-                    "Ejemplo"
+                    "Ejemplo" )
