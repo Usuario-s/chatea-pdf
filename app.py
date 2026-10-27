@@ -1,4 +1,3 @@
-import os
 import platform
 import streamlit as st
 from PIL import Image
@@ -9,9 +8,10 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
-# --------------------------------------------------
+
+# ==========================================
 # CONFIGURACIÓN DE LA APLICACIÓN
-# --------------------------------------------------
+# ==========================================
 
 st.set_page_config(
     page_title="Chat PDF - RAG",
@@ -22,74 +22,69 @@ st.set_page_config(
 st.title("Generación Aumentada por Recuperación (RAG) 💬")
 st.write("Versión de Python:", platform.python_version())
 
-# --------------------------------------------------
+
+# ==========================================
 # CARGAR IMAGEN
-# --------------------------------------------------
+# ==========================================
 
 try:
     image = Image.open("Chat_pdf.png")
     st.image(image, width=350)
 except Exception:
-    st.warning(
-        "No se pudo cargar Chat_pdf.png. "
-        "Verifica que la imagen esté en el repositorio."
-    )
+    st.warning("No se pudo cargar la imagen Chat_pdf.png.")
 
-# --------------------------------------------------
+
+# ==========================================
 # BARRA LATERAL
-# --------------------------------------------------
+# ==========================================
 
 with st.sidebar:
     st.subheader(
-        "Este agente te ayudará a realizar análisis "
-        "sobre el PDF cargado."
+        "Este agente te ayudará a realizar análisis sobre el PDF cargado."
     )
 
-    st.write(
-        "Carga un documento y escribe preguntas "
-        "para consultar su contenido."
-    )
 
-# --------------------------------------------------
-# CLAVE DE API
-# --------------------------------------------------
+# ==========================================
+# CLAVE API DE OPENAI
+# ==========================================
 
-ke = st.text_input(
+api_key = st.text_input(
     "Ingresa tu clave de API de OpenAI",
     type="password"
 )
 
-# --------------------------------------------------
-# CARGAR DOCUMENTO PDF
-# --------------------------------------------------
+
+# ==========================================
+# CARGAR ARCHIVO PDF
+# ==========================================
 
 pdf = st.file_uploader(
     "Carga el archivo PDF",
     type=["pdf"]
 )
 
-# --------------------------------------------------
-# PROCESAR DOCUMENTO
-# --------------------------------------------------
 
-if not ke:
-    st.warning(
-        "Por favor, ingresa tu clave de API de OpenAI "
-        "para continuar."
-    )
+# ==========================================
+# VALIDAR ENTRADAS
+# ==========================================
+
+if not api_key:
+    st.warning("Ingresa tu clave de API de OpenAI para continuar.")
 
 elif pdf is None:
-    st.info("Por favor, carga un archivo PDF para comenzar.")
+    st.info("Carga un archivo PDF para comenzar.")
 
 else:
     try:
-        # Extraer texto de las páginas
-        pdf_reader = PdfReader(pdf)
+        # ==========================================
+        # EXTRAER TEXTO DEL PDF
+        # ==========================================
 
+        lector_pdf = PdfReader(pdf)
         documentos = []
 
         for numero_pagina, pagina in enumerate(
-            pdf_reader.pages,
+            lector_pdf.pages,
             start=1
         ):
             texto_pagina = pagina.extract_text() or ""
@@ -105,12 +100,10 @@ else:
                     )
                 )
 
-        # Comprobar que el PDF tenga texto extraíble
         if not documentos:
             st.error(
                 "No se pudo extraer texto del PDF. "
-                "Si es un documento escaneado, "
-                "necesitas aplicar OCR primero."
+                "Si es un documento escaneado, necesitas utilizar OCR."
             )
             st.stop()
 
@@ -120,78 +113,155 @@ else:
         )
 
         st.info(
-            f"Archivo: {pdf.name} | "
-            f"Texto extraído: {len(texto_completo):,} caracteres"
+            f"Texto extraído: {len(texto_completo)} caracteres"
         )
 
-        # --------------------------------------------------
-        # DIVIDIR EL TEXTO EN FRAGMENTOS
-        # --------------------------------------------------
+        # ==========================================
+        # DIVIDIR TEXTO EN FRAGMENTOS
+        # ==========================================
 
-        separador = CharacterTextSplitter(
+        divisor_texto = CharacterTextSplitter(
             separator="\n",
             chunk_size=1000,
             chunk_overlap=150,
             length_function=len
         )
 
-        fragmentos = separador.split_documents(documentos)
+        fragmentos = divisor_texto.split_documents(documentos)
 
         if not fragmentos:
-            st.error(
-                "No fue posible dividir el documento en fragmentos."
-            )
+            st.error("No se pudieron crear fragmentos del documento.")
             st.stop()
 
         st.success(
             f"Documento dividido en {len(fragmentos)} fragmentos."
         )
 
-        # --------------------------------------------------
-        # CREAR LA BASE DE CONOCIMIENTO VECTORIAL
-        # --------------------------------------------------
+        # ==========================================
+        # CREAR EMBEDDINGS Y BASE VECTORIAL
+        # ==========================================
 
         @st.cache_resource(show_spinner=False)
         def crear_base_vectorial(
             fragmentos,
-            clave_api,
-            nombre_archivo,
-            texto_documento
+            api_key,
+            identificador_documento
         ):
             embeddings = OpenAIEmbeddings(
                 model="text-embedding-3-small",
-                api_key=clave_api
+                api_key=api_key
             )
 
-            base = FAISS.from_documents(
+            base_vectorial = FAISS.from_documents(
                 fragmentos,
                 embeddings
             )
 
-            return base
+            return base_vectorial
 
-        with st.spinner(
-            "Creando la base de conocimiento del documento..."
-        ):
+        identificador = (
+            f"{pdf.name}_{len(texto_completo)}_"
+            f"{hash(texto_completo)}"
+        )
+
+        with st.spinner("Procesando el documento..."):
             base_conocimiento = crear_base_vectorial(
                 fragmentos,
-                ke,
-                pdf.name,
-                texto_completo
+                api_key,
+                identificador
             )
 
-        st.success("Base de conocimiento lista para consultar.")
+        st.success("Base de conocimiento lista.")
 
-        # --------------------------------------------------
-        # INTERFAZ DE PREGUNTAS
-        # --------------------------------------------------
+        # ==========================================
+        # FORMULARIO DE PREGUNTAS
+        # ==========================================
 
-        st.subheader(
-            "Escribe qué quieres saber sobre el documento"
-        )
+        st.subheader("¿Qué quieres saber sobre el documento?")
 
         with st.form("formulario_pregunta"):
             pregunta = st.text_area(
-                "Tu pregunta",
-                placeholder=(
-                    "Ejemplo" )
+                "Escribe tu pregunta",
+                placeholder="Ejemplo: ¿Cuáles son las ideas principales?"
+            )
+
+            consultar = st.form_submit_button("Consultar documento")
+
+        # ==========================================
+        # GENERAR RESPUESTA
+        # ==========================================
+
+        if consultar:
+            if not pregunta.strip():
+                st.warning("Escribe una pregunta antes de continuar.")
+
+            else:
+                try:
+                    with st.spinner("Buscando información..."):
+
+                        documentos_relevantes = (
+                            base_conocimiento.similarity_search(
+                                pregunta,
+                                k=4
+                            )
+                        )
+
+                        contexto = "\n\n".join(
+                            (
+                                f"Página {documento.metadata.get('pagina', 'N/D')}:\n"
+                                f"{documento.page_content}"
+                            )
+                            for documento in documentos_relevantes
+                        )
+
+                        modelo = ChatOpenAI(
+                            model="gpt-4o-mini",
+                            temperature=0,
+                            api_key=api_key
+                        )
+
+                        mensajes = [
+                            (
+                                "system",
+                                "Eres un asistente especializado en "
+                                "analizar documentos PDF. Responde en "
+                                "español utilizando el contexto proporcionado. "
+                                "Si la información no aparece en el contexto, "
+                                "indícalo claramente. No inventes información. "
+                                "Cuando sea posible, menciona las páginas "
+                                "que respaldan tu respuesta.\n\n"
+                                f"CONTEXTO DEL DOCUMENTO:\n{contexto}"
+                            ),
+                            ("human", pregunta)
+                        ]
+
+                        respuesta = modelo.invoke(mensajes)
+
+                    # Mostrar respuesta
+                    st.markdown("### Respuesta")
+                    st.markdown(respuesta.content)
+
+                    # ==========================================
+                    # MOSTRAR FUENTES
+                    # ==========================================
+
+                    with st.expander("Ver fragmentos consultados"):
+                        for indice, documento in enumerate(
+                            documentos_relevantes,
+                            start=1
+                        ):
+                            st.markdown(
+                                f"**Fragmento {indice} | "
+                                f"Página {documento.metadata.get('pagina', 'N/D')}**"
+                            )
+
+                            st.write(documento.page_content)
+                            st.divider()
+
+                except Exception as error_pregunta:
+                    st.error(
+                        f"Error al responder la pregunta: {error_pregunta}"
+                    )
+
+    except Exception as error_pdf:
+        st.error(f"Error al procesar el PDF: {error_pdf}")
