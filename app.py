@@ -1,5 +1,6 @@
 import platform
 import hashlib
+import html
 
 import streamlit as st
 from PIL import Image
@@ -23,160 +24,306 @@ st.set_page_config(
 
 
 # ==========================================
-# DISEÑO VISUAL BLANCO Y AZUL
+# DISEÑO: CHAT BLANCO Y AZUL
 # ==========================================
 
 st.markdown("""
 <style>
-.stApp {
-    background-color: #F4F8FF;
-    color: #193153;
+/* Fondo blanco y texto negro */
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+    background: #FFFFFF !important;
+    color: #111111 !important;
+}
+
+html, body, [class*="css"] {
+    color: #111111;
+}
+
+[data-testid="stHeader"] {
+    background: #FFFFFF;
 }
 
 #MainMenu, footer {
     visibility: hidden;
 }
 
+/* Área principal */
 .block-container {
-    max-width: 1200px;
-    padding-top: 2rem;
+    max-width: 1100px;
+    padding-top: 1.5rem;
     padding-bottom: 3rem;
 }
 
+/* Todos los textos */
+h1, h2, h3, h4, h5, h6,
+p, label, span, li,
+.stMarkdown, .stCaption,
+[data-testid="stMarkdownContainer"] {
+    color: #111111;
+}
+
+/* Encabezado del chat */
 .chat-header {
-    background: linear-gradient(135deg, #1264D8, #398BFA);
-    padding: 30px;
-    border-radius: 22px;
-    color: white;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 23px 26px;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 20px;
     margin-bottom: 25px;
-    box-shadow: 0 8px 24px rgba(28, 100, 216, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.035);
+}
+
+.chat-logo {
+    min-width: 52px;
+    height: 52px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #EAF2FF;
+    border-radius: 16px;
+    font-size: 27px;
 }
 
 .chat-header h1 {
-    color: white;
-    font-size: 30px;
+    color: #111111 !important;
+    font-size: 28px;
     font-weight: 750;
-    margin-bottom: 8px;
+    margin: 0;
 }
 
 .chat-header p {
-    color: #EAF3FF;
-    font-size: 15px;
-    margin-bottom: 0;
+    color: #555555 !important;
+    font-size: 14px;
+    margin: 5px 0 0 0;
 }
 
+/* Barra lateral */
 section[data-testid="stSidebar"] {
-    background: #EAF2FF;
-    border-right: 1px solid #D5E5FC;
+    background: #F8FAFC;
+    border-right: 1px solid #E5E7EB;
 }
 
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3,
-section[data-testid="stSidebar"] p {
-    color: #193D70;
+section[data-testid="stSidebar"] * {
+    color: #111111 !important;
 }
 
-h2, h3, h4 {
-    color: #174A91;
+.sidebar-card {
+    background: #FFFFFF;
+    border: 1px solid #E1E7EF;
+    border-radius: 15px;
+    padding: 16px;
+    margin: 12px 0;
 }
 
-p, label {
-    color: #294565;
+/* Separadores */
+hr {
+    border-color: #E5E7EB !important;
 }
 
+/* Campos de texto */
 .stTextInput input,
 .stTextArea textarea {
-    background-color: white !important;
-    color: #193153 !important;
-    border: 1px solid #C8D9F1 !important;
-    border-radius: 12px !important;
+    background: #FFFFFF !important;
+    color: #111111 !important;
+    border: 1px solid #D1D5DB !important;
+    border-radius: 13px !important;
     padding: 12px !important;
+    caret-color: #2563EB;
+}
+
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: #737373 !important;
+    opacity: 1;
 }
 
 .stTextInput input:focus,
 .stTextArea textarea:focus {
-    border-color: #2678E8 !important;
-    box-shadow: 0 0 0 2px rgba(38, 120, 232, 0.12) !important;
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.13) !important;
 }
 
+/* Botones */
 .stButton button,
 .stFormSubmitButton button {
-    background: linear-gradient(135deg, #1769D2, #398BFA);
-    color: white !important;
-    border: none;
-    border-radius: 12px;
-    padding: 10px 22px;
-    font-weight: 650;
+    background: #2563EB !important;
+    color: #FFFFFF !important;
+    border: 1px solid #2563EB !important;
+    border-radius: 12px !important;
+    font-weight: 650 !important;
+    padding: 10px 18px !important;
+    transition: all 0.2s ease;
 }
 
 .stButton button:hover,
 .stFormSubmitButton button:hover {
-    background: #1055B5;
-    border: none;
+    background: #1D4ED8 !important;
+    border-color: #1D4ED8 !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
 }
 
+/* Carga de archivos */
 [data-testid="stFileUploader"] {
-    background: white;
-    border: 1px dashed #8BB8F2;
+    background: #FFFFFF;
+    border: 1px dashed #93B4F5;
     border-radius: 15px;
-    padding: 14px;
+    padding: 13px;
 }
 
-div[data-testid="stAlert"] {
-    border-radius: 12px;
+[data-testid="stFileUploader"] * {
+    color: #111111 !important;
 }
 
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    background-color: white;
-    border: 1px solid #DCE8F8;
-    border-radius: 18px;
-    padding: 12px;
+/* Indicadores */
+[data-testid="stAlert"] {
+    border-radius: 13px;
 }
 
-hr {
-    border-color: #DCE8F8;
+/* Paneles */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 17px;
+    padding: 13px;
 }
 
+/* Zona de conversación */
+.conversation-title {
+    font-size: 23px;
+    font-weight: 750;
+    color: #111111;
+    margin: 8px 0 5px 0;
+}
+
+.conversation-subtitle {
+    font-size: 13px;
+    color: #666666;
+    margin-bottom: 22px;
+}
+
+/* Burbuja del usuario */
 .user-message {
-    background: #E1EEFF;
-    border: 1px solid #C5DDFF;
-    border-radius: 18px 5px 18px 18px;
-    padding: 16px 20px;
-    margin: 15px 0 20px 10%;
-    color: #174A91;
+    display: flex;
+    justify-content: flex-end;
+    margin: 22px 0;
+}
+
+.user-bubble {
+    max-width: 78%;
+    background: #EAF2FF;
+    color: #111111 !important;
+    border: 1px solid #D8E5FF;
+    border-radius: 20px 20px 5px 20px;
+    padding: 15px 19px;
+    line-height: 1.65;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
 }
 
-.chat-label {
-    color: #2678E8;
-    font-size: 13px;
+/* Mensaje del asistente */
+.assistant-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    margin: 20px 0;
+}
+
+.assistant-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 39px;
+    height: 39px;
+    background: #2563EB;
+    color: #FFFFFF !important;
+    border-radius: 13px;
+    font-size: 19px;
+}
+
+.assistant-bubble {
+    flex: 1;
+    min-width: 0;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 5px 18px 18px 18px;
+    padding: 17px 20px;
+    line-height: 1.75;
+    color: #111111 !important;
+    overflow-wrap: anywhere;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.025);
+}
+
+.assistant-bubble p,
+.assistant-bubble li,
+.assistant-bubble h1,
+.assistant-bubble h2,
+.assistant-bubble h3,
+.assistant-bubble strong {
+    color: #111111 !important;
+}
+
+.message-label {
+    color: #2563EB !important;
+    font-size: 12px;
     font-weight: 750;
+    letter-spacing: 0.4px;
     margin-bottom: 8px;
 }
 
-.chat-footer {
-    text-align: center;
-    color: #7B91AD;
-    font-size: 12px;
-    padding: 18px 0 5px 0;
+/* Área de pregunta */
+.question-panel {
+    background: #FFFFFF;
+    border: 1px solid #DCE5F1;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
 }
 
+/* Fuentes */
+[data-testid="stExpander"] {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 13px;
+}
+
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary p {
+    color: #111111 !important;
+}
+
+/* Pie de página */
+.chat-footer {
+    text-align: center;
+    color: #737373 !important;
+    font-size: 12px;
+    padding: 28px 0 8px 0;
+}
+
+/* Adaptación móvil */
 @media (max-width: 768px) {
     .block-container {
         padding: 1rem;
     }
 
     .chat-header {
-        padding: 22px;
+        padding: 17px;
     }
 
     .chat-header h1 {
-        font-size: 24px;
+        font-size: 23px;
     }
 
-    .user-message {
-        margin-left: 3%;
+    .user-bubble {
+        max-width: 92%;
+    }
+
+    .assistant-bubble {
+        padding: 14px;
     }
 }
 </style>
@@ -189,27 +336,26 @@ hr {
 
 st.markdown("""
 <div class="chat-header">
-    <h1>💬 Chat PDF</h1>
-    <p>
-        Generación Aumentada por Recuperación (RAG)<br>
-        Conversa con tus documentos, consulta información
-        y encuentra respuestas basadas en el contenido del PDF.
-    </p>
+    <div class="chat-logo">💬</div>
+    <div>
+        <h1>Chat PDF</h1>
+        <p>Tu asistente inteligente para analizar documentos PDF</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-st.write("Versión de Python:", platform.python_version())
+st.caption(f"Python {platform.python_version()}")
 
 
 # ==========================================
-# CARGAR IMAGEN
+# IMAGEN
 # ==========================================
 
 try:
     image = Image.open("Chat_pdf.png")
-    st.image(image, width=350)
+    st.image(image, width=300)
 except Exception:
-    st.warning("No se pudo cargar la imagen Chat_pdf.png.")
+    pass
 
 
 # ==========================================
@@ -217,26 +363,29 @@ except Exception:
 # ==========================================
 
 with st.sidebar:
-    st.subheader("📚 Tu asistente documental")
-
-    st.write(
-        "Este agente te ayudará a realizar análisis "
-        "sobre el PDF cargado."
-    )
+    st.markdown("## 💬 Chat PDF")
+    st.write("Consulta tus documentos con inteligencia artificial.")
 
     st.divider()
 
-    st.markdown("### ✨ ¿Qué puedes hacer?")
+    st.markdown("### ✨ Funciones")
 
     st.markdown("""
-    - 📄 Cargar un documento PDF.
-    - 🔎 Buscar información específica.
-    - 💡 Identificar ideas principales.
-    - 📖 Consultar fragmentos y páginas.
+    - 📄 Analizar documentos PDF.
+    - 🔎 Buscar información.
+    - 💡 Encontrar ideas principales.
+    - 📚 Consultar fragmentos y páginas.
     """)
 
     st.divider()
-    st.caption("Chat PDF · Sistema RAG")
+
+    st.markdown("""
+    <div class="sidebar-card">
+        <strong>🔵 Sistema RAG</strong>
+        <p>Las respuestas se generan utilizando fragmentos
+        recuperados del documento que cargaste.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ==========================================
@@ -246,10 +395,10 @@ with st.sidebar:
 st.markdown("### 🔑 Conexión con OpenAI")
 
 api_key = st.text_input(
-    "Ingresa tu clave de API de OpenAI",
+    "Clave de API de OpenAI",
     type="password",
-    placeholder="sk-...",
-    help="Tu clave se utiliza para generar embeddings y respuestas."
+    placeholder="Ingresa tu clave de API",
+    help="Se utiliza para generar embeddings y respuestas."
 )
 
 
@@ -257,12 +406,11 @@ api_key = st.text_input(
 # CARGAR PDF
 # ==========================================
 
-st.markdown("### 📄 Documento de consulta")
+st.markdown("### 📄 Tu documento")
 
 pdf = st.file_uploader(
-    "Carga el archivo PDF",
-    type=["pdf"],
-    help="Selecciona el documento que quieres analizar."
+    "Selecciona un archivo PDF",
+    type=["pdf"]
 )
 
 
@@ -292,15 +440,15 @@ def crear_base_vectorial(
 # ==========================================
 
 if not api_key:
-    st.info("🔐 Ingresa tu clave de API de OpenAI para continuar.")
+    st.info("Ingresa tu clave de API para comenzar.")
 
 elif pdf is None:
-    st.info("📂 Carga un archivo PDF para comenzar.")
+    st.info("Carga un PDF para empezar a conversar con tu documento.")
 
 else:
     try:
         # ==========================================
-        # EXTRAER TEXTO DEL PDF
+        # EXTRAER TEXTO
         # ==========================================
 
         pdf.seek(0)
@@ -327,7 +475,7 @@ else:
         if not documentos:
             st.error(
                 "No se pudo extraer texto del PDF. "
-                "Si es un documento escaneado, necesitas utilizar OCR."
+                "Si es un documento escaneado, necesitarás OCR."
             )
             st.stop()
 
@@ -337,11 +485,11 @@ else:
         )
 
         st.success(
-            f"📄 Texto extraído: {len(texto_completo):,} caracteres"
+            f"Documento leído: {len(texto_completo):,} caracteres."
         )
 
         # ==========================================
-        # DIVIDIR TEXTO EN FRAGMENTOS
+        # DIVIDIR TEXTO
         # ==========================================
 
         divisor_texto = CharacterTextSplitter(
@@ -357,74 +505,84 @@ else:
             st.error("No se pudieron crear fragmentos del documento.")
             st.stop()
 
-        st.success(
-            f"🧩 Documento dividido en {len(fragmentos)} fragmentos."
-        )
+        st.caption(f"Fragmentos creados: {len(fragmentos)}")
 
         # ==========================================
-        # CREAR BASE DE CONOCIMIENTO
+        # BASE DE CONOCIMIENTO
         # ==========================================
 
         identificador = hashlib.sha256(
             texto_completo.encode("utf-8")
         ).hexdigest()
 
-        with st.spinner("🔄 Procesando el documento..."):
+        with st.spinner("Preparando tu documento..."):
             base_conocimiento = crear_base_vectorial(
                 fragmentos,
                 api_key,
                 identificador
             )
 
-        st.success("✅ Base de conocimiento lista.")
+        # ==========================================
+        # ÁREA DE CHAT
+        # ==========================================
+
         st.divider()
 
-        # ==========================================
-        # FORMULARIO DE PREGUNTAS
-        # ==========================================
+        st.markdown(
+            '<div class="conversation-title">Conversación</div>',
+            unsafe_allow_html=True
+        )
 
-        st.markdown("## 💬 Conversación con tu documento")
-        st.caption(f"Documento activo: {pdf.name}")
-
-        with st.container(border=True):
-            st.markdown("### 👋 ¿Qué quieres saber?")
-
-            with st.form("formulario_pregunta"):
-                pregunta = st.text_area(
-                    "Escribe tu pregunta",
-                    placeholder=(
-                        "Ejemplo: ¿Cuáles son las ideas principales "
-                        "del documento?"
-                    ),
-                    height=110
-                )
-
-                consultar = st.form_submit_button(
-                    "🔎 Consultar documento",
-                    use_container_width=True
-                )
+        st.markdown(
+            f'<div class="conversation-subtitle">'
+            f'Consultando: {html.escape(pdf.name)}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
         # ==========================================
-        # GENERAR RESPUESTA
+        # FORMULARIO
+        # ==========================================
+
+        with st.form("formulario_pregunta"):
+            pregunta = st.text_area(
+                "Escribe tu mensaje",
+                placeholder=(
+                    "Pregunta lo que quieras sobre el documento..."
+                ),
+                height=100
+            )
+
+            consultar = st.form_submit_button(
+                "Enviar pregunta  ➤",
+                use_container_width=True
+            )
+
+        # ==========================================
+        # RESPONDER
         # ==========================================
 
         if consultar:
             if not pregunta.strip():
-                st.warning("Escribe una pregunta antes de continuar.")
+                st.warning("Escribe una pregunta antes de enviarla.")
 
             else:
                 try:
+                    # Mostrar el mensaje de forma segura.
+                    pregunta_segura = html.escape(pregunta)
+
                     st.markdown(
                         f"""
                         <div class="user-message">
-                            <div class="chat-label">TÚ</div>
-                            {pregunta}
+                            <div class="user-bubble">
+                                {pregunta_segura}
+                            </div>
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
 
-                    with st.spinner("🤖 Analizando el documento..."):
+                    with st.spinner("El asistente está pensando..."):
                         documentos_relevantes = (
                             base_conocimiento.similarity_search(
                                 pregunta,
@@ -463,12 +621,18 @@ else:
 
                         respuesta = modelo.invoke(mensajes)
 
-                    # ==========================================
-                    # MOSTRAR RESPUESTA
-                    # ==========================================
-
+                    # Mostrar respuesta del asistente.
                     st.markdown(
-                        '<div class="chat-label">🤖 ASISTENTE PDF</div>',
+                        """
+                        <div class="assistant-row">
+                            <div class="assistant-avatar">✦</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div class="message-label">
+                                    ASISTENTE PDF
+                                </div>
+                            </div>
+                        </div>
+                        """,
                         unsafe_allow_html=True
                     )
 
@@ -476,17 +640,21 @@ else:
                         st.markdown(respuesta.content)
 
                     # ==========================================
-                    # MOSTRAR FUENTES
+                    # FUENTES CONSULTADAS
                     # ==========================================
 
-                    with st.expander("📚 Ver fragmentos consultados"):
+                    with st.expander("📚 Consultar fuentes del documento"):
                         for indice, documento in enumerate(
                             documentos_relevantes,
                             start=1
                         ):
+                            pagina = documento.metadata.get(
+                                "pagina",
+                                "N/D"
+                            )
+
                             st.markdown(
-                                f"**📄 Fragmento {indice} | "
-                                f"Página {documento.metadata.get('pagina', 'N/D')}**"
+                                f"**Fragmento {indice} · Página {pagina}**"
                             )
 
                             st.write(documento.page_content)
@@ -503,7 +671,7 @@ else:
 
         st.markdown("""
         <div class="chat-footer">
-            Chat PDF · RAG · Respuestas basadas en el documento cargado
+            Chat PDF · Inteligencia artificial basada en tus documentos
         </div>
         """, unsafe_allow_html=True)
 
