@@ -1,4 +1,6 @@
 import platform
+import hashlib
+
 import streamlit as st
 from PIL import Image
 from PyPDF2 import PdfReader
@@ -10,7 +12,7 @@ from langchain_core.documents import Document
 
 
 # ==========================================
-# CONFIGURACIÓN DE LA APLICACIÓN
+# CONFIGURACIÓN
 # ==========================================
 
 st.set_page_config(
@@ -21,35 +23,26 @@ st.set_page_config(
 
 
 # ==========================================
-# DISEÑO VISUAL: BLANCO Y AZUL
+# DISEÑO VISUAL BLANCO Y AZUL
 # ==========================================
 
 st.markdown("""
 <style>
-
-/* Fondo general */
 .stApp {
     background-color: #F4F8FF;
     color: #193153;
 }
 
-/* Ocultar menú y pie de página */
-#MainMenu {
+#MainMenu, footer {
     visibility: hidden;
 }
 
-footer {
-    visibility: hidden;
-}
-
-/* Área principal */
 .block-container {
     max-width: 1200px;
     padding-top: 2rem;
     padding-bottom: 3rem;
 }
 
-/* Encabezado */
 .chat-header {
     background: linear-gradient(135deg, #1264D8, #398BFA);
     padding: 30px;
@@ -72,15 +65,6 @@ footer {
     margin-bottom: 0;
 }
 
-/* Paneles blancos */
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    background-color: #FFFFFF;
-    border: 1px solid #DCE8F8;
-    border-radius: 18px;
-    padding: 16px;
-}
-
-/* Barra lateral */
 section[data-testid="stSidebar"] {
     background: #EAF2FF;
     border-right: 1px solid #D5E5FC;
@@ -92,7 +76,6 @@ section[data-testid="stSidebar"] p {
     color: #193D70;
 }
 
-/* Textos */
 h2, h3, h4 {
     color: #174A91;
 }
@@ -101,10 +84,9 @@ p, label {
     color: #294565;
 }
 
-/* Campos de texto */
 .stTextInput input,
 .stTextArea textarea {
-    background-color: #FFFFFF !important;
+    background-color: white !important;
     color: #193153 !important;
     border: 1px solid #C8D9F1 !important;
     border-radius: 12px !important;
@@ -117,7 +99,6 @@ p, label {
     box-shadow: 0 0 0 2px rgba(38, 120, 232, 0.12) !important;
 }
 
-/* Botones */
 .stButton button,
 .stFormSubmitButton button {
     background: linear-gradient(135deg, #1769D2, #398BFA);
@@ -126,58 +107,47 @@ p, label {
     border-radius: 12px;
     padding: 10px 22px;
     font-weight: 650;
-    transition: all 0.2s ease;
 }
 
 .stButton button:hover,
 .stFormSubmitButton button:hover {
     background: #1055B5;
     border: none;
-    box-shadow: 0 5px 14px rgba(23, 105, 210, 0.2);
 }
 
-/* Cargador de archivos */
 [data-testid="stFileUploader"] {
-    background: #FFFFFF;
+    background: white;
     border: 1px dashed #8BB8F2;
     border-radius: 15px;
     padding: 14px;
 }
 
-/* Mensajes informativos */
 div[data-testid="stAlert"] {
     border-radius: 12px;
 }
 
-/* Separadores */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: white;
+    border: 1px solid #DCE8F8;
+    border-radius: 18px;
+    padding: 12px;
+}
+
 hr {
     border-color: #DCE8F8;
 }
 
-/* Respuesta del asistente */
-.assistant-message {
-    background: #FFFFFF;
-    border: 1px solid #D8E7FB;
-    border-left: 5px solid #2879E8;
-    border-radius: 5px 18px 18px 18px;
-    padding: 20px 23px;
-    margin: 12px 0 22px 0;
-    color: #193153;
-    box-shadow: 0 4px 14px rgba(36, 91, 157, 0.05);
-}
-
-/* Mensaje del usuario */
 .user-message {
     background: #E1EEFF;
     border: 1px solid #C5DDFF;
     border-radius: 18px 5px 18px 18px;
     padding: 16px 20px;
-    margin: 15px 0;
+    margin: 15px 0 20px 10%;
     color: #174A91;
-    margin-left: 10%;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
 }
 
-/* Etiquetas del chat */
 .chat-label {
     color: #2678E8;
     font-size: 13px;
@@ -185,7 +155,6 @@ hr {
     margin-bottom: 8px;
 }
 
-/* Pie del chat */
 .chat-footer {
     text-align: center;
     color: #7B91AD;
@@ -193,13 +162,6 @@ hr {
     padding: 18px 0 5px 0;
 }
 
-/* Expansores */
-details {
-    background: #FFFFFF;
-    border-radius: 12px;
-}
-
-/* Adaptación a pantallas pequeñas */
 @media (max-width: 768px) {
     .block-container {
         padding: 1rem;
@@ -217,7 +179,6 @@ details {
         margin-left: 3%;
     }
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -230,8 +191,7 @@ st.markdown("""
 <div class="chat-header">
     <h1>💬 Chat PDF</h1>
     <p>
-        Generación Aumentada por Recuperación (RAG)
-        <br>
+        Generación Aumentada por Recuperación (RAG)<br>
         Conversa con tus documentos, consulta información
         y encuentra respuestas basadas en el contenido del PDF.
     </p>
@@ -276,12 +236,11 @@ with st.sidebar:
     """)
 
     st.divider()
-
     st.caption("Chat PDF · Sistema RAG")
 
 
 # ==========================================
-# CLAVE API DE OPENAI
+# CLAVE API
 # ==========================================
 
 st.markdown("### 🔑 Conexión con OpenAI")
@@ -295,7 +254,7 @@ api_key = st.text_input(
 
 
 # ==========================================
-# CARGAR ARCHIVO PDF
+# CARGAR PDF
 # ==========================================
 
 st.markdown("### 📄 Documento de consulta")
@@ -305,6 +264,27 @@ pdf = st.file_uploader(
     type=["pdf"],
     help="Selecciona el documento que quieres analizar."
 )
+
+
+# ==========================================
+# CREAR BASE VECTORIAL
+# ==========================================
+
+@st.cache_resource(show_spinner=False)
+def crear_base_vectorial(
+    fragmentos,
+    api_key,
+    identificador_documento
+):
+    embeddings = OpenAIEmbeddings(
+        model="text-embedding-3-small",
+        api_key=api_key
+    )
+
+    return FAISS.from_documents(
+        fragmentos,
+        embeddings
+    )
 
 
 # ==========================================
@@ -323,6 +303,7 @@ else:
         # EXTRAER TEXTO DEL PDF
         # ==========================================
 
+        pdf.seek(0)
         lector_pdf = PdfReader(pdf)
         documentos = []
 
@@ -381,5 +362,150 @@ else:
         )
 
         # ==========================================
-        # CREAR EMBEDDINGS Y BASE VECTORIAL
-        #
+        # CREAR BASE DE CONOCIMIENTO
+        # ==========================================
+
+        identificador = hashlib.sha256(
+            texto_completo.encode("utf-8")
+        ).hexdigest()
+
+        with st.spinner("🔄 Procesando el documento..."):
+            base_conocimiento = crear_base_vectorial(
+                fragmentos,
+                api_key,
+                identificador
+            )
+
+        st.success("✅ Base de conocimiento lista.")
+        st.divider()
+
+        # ==========================================
+        # FORMULARIO DE PREGUNTAS
+        # ==========================================
+
+        st.markdown("## 💬 Conversación con tu documento")
+        st.caption(f"Documento activo: {pdf.name}")
+
+        with st.container(border=True):
+            st.markdown("### 👋 ¿Qué quieres saber?")
+
+            with st.form("formulario_pregunta"):
+                pregunta = st.text_area(
+                    "Escribe tu pregunta",
+                    placeholder=(
+                        "Ejemplo: ¿Cuáles son las ideas principales "
+                        "del documento?"
+                    ),
+                    height=110
+                )
+
+                consultar = st.form_submit_button(
+                    "🔎 Consultar documento",
+                    use_container_width=True
+                )
+
+        # ==========================================
+        # GENERAR RESPUESTA
+        # ==========================================
+
+        if consultar:
+            if not pregunta.strip():
+                st.warning("Escribe una pregunta antes de continuar.")
+
+            else:
+                try:
+                    st.markdown(
+                        f"""
+                        <div class="user-message">
+                            <div class="chat-label">TÚ</div>
+                            {pregunta}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    with st.spinner("🤖 Analizando el documento..."):
+                        documentos_relevantes = (
+                            base_conocimiento.similarity_search(
+                                pregunta,
+                                k=4
+                            )
+                        )
+
+                        contexto = "\n\n".join(
+                            (
+                                f"Página {documento.metadata.get('pagina', 'N/D')}:\n"
+                                f"{documento.page_content}"
+                            )
+                            for documento in documentos_relevantes
+                        )
+
+                        modelo = ChatOpenAI(
+                            model="gpt-4o-mini",
+                            temperature=0,
+                            api_key=api_key
+                        )
+
+                        mensajes = [
+                            (
+                                "system",
+                                "Eres un asistente especializado en "
+                                "analizar documentos PDF. Responde en "
+                                "español utilizando el contexto proporcionado. "
+                                "Si la información no aparece en el contexto, "
+                                "indícalo claramente. No inventes información. "
+                                "Cuando sea posible, menciona las páginas "
+                                "que respaldan tu respuesta.\n\n"
+                                f"CONTEXTO DEL DOCUMENTO:\n{contexto}"
+                            ),
+                            ("human", pregunta)
+                        ]
+
+                        respuesta = modelo.invoke(mensajes)
+
+                    # ==========================================
+                    # MOSTRAR RESPUESTA
+                    # ==========================================
+
+                    st.markdown(
+                        '<div class="chat-label">🤖 ASISTENTE PDF</div>',
+                        unsafe_allow_html=True
+                    )
+
+                    with st.container(border=True):
+                        st.markdown(respuesta.content)
+
+                    # ==========================================
+                    # MOSTRAR FUENTES
+                    # ==========================================
+
+                    with st.expander("📚 Ver fragmentos consultados"):
+                        for indice, documento in enumerate(
+                            documentos_relevantes,
+                            start=1
+                        ):
+                            st.markdown(
+                                f"**📄 Fragmento {indice} | "
+                                f"Página {documento.metadata.get('pagina', 'N/D')}**"
+                            )
+
+                            st.write(documento.page_content)
+                            st.divider()
+
+                except Exception as error_pregunta:
+                    st.error(
+                        f"Error al responder la pregunta: {error_pregunta}"
+                    )
+
+        # ==========================================
+        # PIE DE PÁGINA
+        # ==========================================
+
+        st.markdown("""
+        <div class="chat-footer">
+            Chat PDF · RAG · Respuestas basadas en el documento cargado
+        </div>
+        """, unsafe_allow_html=True)
+
+    except Exception as error_pdf:
+        st.error(f"Error al procesar el PDF: {error_pdf}")
