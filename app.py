@@ -352,7 +352,7 @@ st.caption(f"Python {platform.python_version()}")
 # ==========================================
 
 try:
-    image = Image.open("Chat_pdf.png")
+    image = Image.open("im1.jpg")
     st.image(image, width=300)
 except Exception:
     pass
